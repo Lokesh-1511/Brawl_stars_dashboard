@@ -1,13 +1,33 @@
+
+
+
+
 from flask import Blueprint, jsonify, request
-from .utils import get_player_data
+import requests
+import os
+from dotenv import load_dotenv
 
-main = Blueprint('main', __name__)
+api = Blueprint('api', __name__)
 
-@main.route("/api/ping")
-def ping():
-    return jsonify({"message": "pong!"})
+# Load environment variables from .env file
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+BRAWL_API_TOKEN = os.environ.get('BRAWL_API_TOKEN')
 
-@main.route("/api/player/<player_tag>")
-def player_info(player_tag):
-    data = get_player_data(player_tag)
-    return jsonify(data)
+@api.route('/player/<string:tag>', methods=['GET'])
+def get_player(tag):
+    if not BRAWL_API_TOKEN:
+        return jsonify({"message": "API token not set"}), 500
+
+    headers = {
+        "Authorization": BRAWL_API_TOKEN if BRAWL_API_TOKEN.startswith('Bearer') else f"Bearer {BRAWL_API_TOKEN}"
+    }
+
+    tag = tag.upper().replace('#', '%23')  # Make sure tag is URL-safe
+    url = f"https://api.brawlstars.com/v1/players/{tag}"
+
+    try:
+        res = requests.get(url, headers=headers)
+        res.raise_for_status()
+        return jsonify(res.json())
+    except requests.exceptions.HTTPError as err:
+        return jsonify({"message": "Failed to fetch player", "error": str(err), "details": res.text}), res.status_code
