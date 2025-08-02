@@ -1,22 +1,42 @@
-import { useEffect, useState } from 'react';
+
+import { useState, useEffect } from 'react';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import './App.css';
 
 function App() {
-  const [player, setPlayer] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/player/8VJ8PQLQP')
-      .then(res => res.json())
-      .then(data => setPlayer(data))
-      .catch(err => console.error('Error fetching:', err));
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('brawlUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
   }, []);
 
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('brawlUser', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('brawlUser');
+  };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
   return (
-    <div>
-      <h1>Brawl Stars Player Info</h1>
-      {player ? (
-        <pre>{JSON.stringify(player, null, 2)}</pre>
+    <div className="app">
+      {user ? (
+        <Dashboard user={user} onLogout={handleLogout} />
       ) : (
-        <p>Loading...</p>
+        <Login onLogin={handleLogin} />
       )}
     </div>
   );
